@@ -9,10 +9,6 @@ from joblib import Parallel, delayed
 from PIL import Image
 
 #------------------------------------------------
-os.chdir('/home/alexa/Home/My_Projects/PDE_solvers/CFD')
-#------------------------------------------------
-
-#------------------------------------------------
 #  One of the most intriguing problems in computer graphics is the
 #  simulation of fluid-like behavior. A good fluid solver is of great
 #  importance in many different areas. In the special effects industry
