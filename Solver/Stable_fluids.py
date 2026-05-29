@@ -8,43 +8,42 @@ import os, shutil, time
 from joblib import Parallel, delayed
 from PIL import Image
 
-#------------------------------------------------
-os.chdir('/home/alexa/Home/My_Projects/PDE_solvers/CFD')
-#------------------------------------------------
+#------------------------------------------------------------------------------------------------
 
-#------------------------------------------------
-#  One of the most intriguing problems in computer graphics is the
-#  simulation of fluid-like behavior. A good fluid solver is of great
-#  importance in many different areas. In the special effects industry
-#  there is a high demand to convincingly mimic the appearance and
-#  behavior of fluids such as smoke, water and fire. Paint programs
-#  can also benefit from fluid solvers to emulate traditional techniques
-#  such as watercolor and oil paint. Texture synthesis is another possible 
-#  application. 
+"""
 
+ One of the most intriguing problems in computer graphics is the
+ simulation of fluid-like behavior. A good fluid solver is of great
+ importance in many different areas. In the special effects industry
+ there is a high demand to convincingly mimic the appearance and
+ behavior of fluids such as smoke, water and fire. Paint programs
+ can also benefit from fluid solvers to emulate traditional techniques
+ such as watercolor and oil paint. Texture synthesis is another possible 
+ application. 
 
-#------------------------------------------------
-#  w0(x) --> w1(x) --> w2(x) --> w3(x) --> w4(x)
-#    add force   advect    diffuse    project
-#------------------------------------------------
++----------------------------------------------------+
+|  w0(x) --> w1(x) --> w2(x) --> w3(x) --> w4(x)     |
+|    add force   advect    diffuse    project        |
++----------------------------------------------------+
+"""
 
-H  = 7
-N  = 230
-dt = 0.1
-T  = 10
-# t = np.arange(0, T, dt)
-KINEMATIC_VISCOSITY = 0.001
+if __name__=="__main__":
 
-#------------------------------------------------
-x,y = np.linspace(0, H, N), np.linspace(0, H, N)
-X,Y = np.meshgrid(x, y,
-                  indexing='ij')
-COORDINATES = np.stack((X,Y), axis=-1)
-dx = H / (N - 1)
+    H  = 7
+    N  = 230
+    dt = 0.1
+    T  = 10
+    # t = np.arange(0, T, dt)
+    KINEMATIC_VISCOSITY = 0.001
 
-w0 = np.zeros(X.shape + (2,)) # initial state (Nx, Ny, 2)
+    #------------------------------------------------
+    x,y = np.linspace(0, H, N), np.linspace(0, H, N)
+    X,Y = np.meshgrid(x, y,
+                    indexing='ij')
+    COORDINATES = np.stack((X,Y), axis=-1)
+    dx = H / (N - 1)
 
-#------------------------------------------------
+    w0 = np.zeros(X.shape + (2,)) # initial state (Nx, Ny, 2)
 
 def force(t, X, Y, a):
     # Shape: (Nx, Ny, 2)
@@ -191,7 +190,8 @@ def project(w3):
 
     return w4
 
-def render_fluid_frames(solution, H, N, dx, dpi=200, num_workers=13, framerate=30):
+def render_fluid_frames(solution, H, N, dx, dpi=200, num_workers=13, framerate=30,
+                        video_filename:str="Fluid_Simulation.mp4"):
 
     """
     solution: np.ndarray of shape (T, N, N, 2)  velocity field at each timestep
@@ -249,7 +249,6 @@ def render_fluid_frames(solution, H, N, dx, dpi=200, num_workers=13, framerate=3
     even_height = height if height % 2 == 0 else height+1
     print(f"Sample frame resolution: {width}x{height} → using {even_width}x{even_height}")
 
-    video_filename = "fluid_simulation.mp4"
     print("Stitching frames into video...")
 
     ffmpeg_cmd = f"""
@@ -275,24 +274,31 @@ def apply_obstacle(field, mask):
     field = field.copy()
     field[mask, :] = 0 
     return field
-    
-obstacle_mask = make_circular_obstacle(X, Y, center=(H/2, H-H/3), radius=0.75)
 
-nsteps = int(T/dt)
-solution = np.zeros((nsteps, N, N, 2))
+#------------------------------------------------------------------------------------------------
 
-w = w0.copy()
-for i in tqdm(range(nsteps), desc="Simulating"):
-    t = i * dt
-    w1 = w + dt * force(t, X, Y, 9)
-    w1 = apply_obstacle(w1, obstacle_mask)
-    w2 = advect(w1, dt)
-    w2 = apply_obstacle(w2, obstacle_mask)
-    w3 = diffuse(w2, dt, dx)
-    w3 = apply_obstacle(w3, obstacle_mask)
-    w4 = project(w3)
-    w4 = apply_obstacle(w4, obstacle_mask)
-    w = w4.copy()
-    solution[i] = w
+if __name__=="__main__":
 
-render_fluid_frames(solution, H, N, dx, dpi=200, num_workers=15, framerate=30)
+
+    #------------------------------------------------
+        
+    obstacle_mask = make_circular_obstacle(X, Y, center=(H/2, H-H/3), radius=0.75)
+
+    nsteps = int(T/dt)
+    solution = np.zeros((nsteps, N, N, 2))
+
+    w = w0.copy()
+    for i in tqdm(range(nsteps), desc="Simulating"):
+        t = i * dt
+        w1 = w + dt * force(t, X, Y, 9)
+        w1 = apply_obstacle(w1, obstacle_mask)
+        w2 = advect(w1, dt)
+        w2 = apply_obstacle(w2, obstacle_mask)
+        w3 = diffuse(w2, dt, dx)
+        w3 = apply_obstacle(w3, obstacle_mask)
+        w4 = project(w3)
+        w4 = apply_obstacle(w4, obstacle_mask)
+        w = w4.copy()
+        solution[i] = w
+
+    render_fluid_frames(solution, H, N, dx, dpi=200, num_workers=15, framerate=30)
